@@ -154,6 +154,24 @@ test('熔断：全部成员都在冷却时，仍会回头尝试而不是直接�
   await pool.close()
 })
 
+test('熔断指数退避：第二次熔断的冷却时间翻倍', async () => {
+  const dead = await upstream(errJson(503, 'down'))
+  const ok = await upstream(okJson('alive'))
+  const { pool, url } = await startPool([dead.port, ok.port], { breakerThreshold: 1, breakerCooldownMs: 200 })
+
+  await post(url) // 第一次熔断：冷却 200ms
+  let snap = pool.breakerSnapshot()
+  assert.equal(snap[0].trips, 1)
+  assert.ok(snap[0].cooldownRemainingMs <= 200)
+
+  await new Promise((r) => setTimeout(r, 250))
+  await post(url) // 冷却到期后再失败：第二次熔断，冷却应为 400ms
+  snap = pool.breakerSnapshot()
+  assert.equal(snap[0].trips, 2)
+  assert.ok(snap[0].cooldownRemainingMs > 300, `第二次冷却应明显变长，实际 ${snap[0].cooldownRemainingMs}ms`)
+  await pool.close()
+})
+
 test('熔断不误伤：400 这类请求错误不计入失败次数', async () => {
   const bad = await upstream(errJson(400, 'bad request'))
   const ok = await upstream(okJson('unused'))
