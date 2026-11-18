@@ -5,3 +5,5 @@
         port: 17890
         poolFile: ''
         attemptTimeoutMs: 60000
+        breakerThreshold: 3
+        breakerCooldownMs: 60000
