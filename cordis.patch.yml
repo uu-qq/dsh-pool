@@ -1,0 +1,7 @@
+- insert:
+    - id: pool
+      name: dsh-pool
+      config:
+        port: 17890
+        poolFile: ''
+        attemptTimeoutMs: 60000
